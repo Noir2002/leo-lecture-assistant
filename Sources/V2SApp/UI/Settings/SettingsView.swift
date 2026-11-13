@@ -15,6 +15,8 @@ struct SettingsView: View {
             headerBar
             Divider()
             TabView {
+                LeoLearningSettingsView(model: model)
+                    .tabItem { Label("Learning", systemImage: "graduationcap") }
                 generalTab
                     .tabItem { Label(model.localized(.general), systemImage: "gearshape") }
                 overlayTab
@@ -560,6 +562,120 @@ struct SettingsView: View {
                 }
             }
         )
+    }
+}
+
+private struct LeoLearningSettingsView: View {
+    @ObservedObject private var lecture: LectureSessionCoordinator
+    @State private var keyDraft = ""
+    @State private var connectionStatus = ""
+
+    init(model: AppModel) {
+        self.lecture = model.lectureCoordinator
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                GroupBox("Course") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Picker("Course", selection: Binding(
+                            get: { lecture.config.selectedCourse },
+                            set: { lecture.setCourse($0) }
+                        )) {
+                            ForEach(lecture.courses) { course in
+                                Text("\(course.code) — \(course.officialTitle)").tag(course.code)
+                            }
+                        }
+                        Picker("Engine Mode", selection: Binding(
+                            get: { lecture.config.engineMode },
+                            set: { lecture.setEngineMode($0) }
+                        )) {
+                            ForEach(LectureEngineMode.allCases) { mode in
+                                Text(mode.displayName).tag(mode)
+                            }
+                        }
+                    }
+                    .padding(8)
+                }
+
+                GroupBox("Vault") {
+                    HStack {
+                        TextField("Absolute Vault path", text: Binding(
+                            get: { lecture.config.vaultPath ?? "" },
+                            set: { lecture.setVaultPath($0) }
+                        ))
+                        Text(lecture.config.vaultPath == nil ? "Not found" : "Validated on Start")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(8)
+                }
+
+                GroupBox("Gemini API Auth Key") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        SecureField("Auth Key", text: $keyDraft)
+                        Toggle("I confirm this key belongs to a project with billing disabled", isOn: Binding(
+                            get: { lecture.config.freeTierConfirmed },
+                            set: { lecture.setFreeTierConfirmed($0) }
+                        ))
+                        HStack {
+                            Button("Set Key") {
+                                do {
+                                    try lecture.saveCredential(keyDraft)
+                                    keyDraft = ""
+                                    connectionStatus = "Key stored in Keychain"
+                                } catch {
+                                    connectionStatus = "Could not store key"
+                                }
+                            }
+                            .disabled(keyDraft.isEmpty)
+                            Button("Test Connection") {
+                                Task {
+                                    do {
+                                        try await lecture.testGeminiConnection()
+                                        connectionStatus = "Connection OK"
+                                    } catch {
+                                        connectionStatus = "Connection failed"
+                                    }
+                                }
+                            }
+                            .disabled(lecture.credentialConfigured == false)
+                            Button("Delete Key", role: .destructive) {
+                                try? lecture.deleteCredential()
+                                connectionStatus = "Key deleted"
+                            }
+                            .disabled(lecture.credentialConfigured == false)
+                        }
+                        Text(lecture.credentialConfigured ? "Configured in macOS Keychain" : "User action required")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        if connectionStatus.isEmpty == false {
+                            Text(connectionStatus).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(8)
+                }
+
+                GroupBox("Privacy & Cost") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Cloud mode: Free-tier Gemini only")
+                            .font(.headline)
+                        Text("Gemini Smart sends audio and current-course text to Google Gemini, including the full session transcript and bookmark excerpts for the post-class review.")
+                        Toggle("Generate a Gemini review after Apple Local classes", isOn: Binding(
+                            get: { lecture.config.reviewAfterAppleLocal == true },
+                            set: { lecture.config.reviewAfterAppleLocal = $0 }
+                        ))
+                        .disabled(lecture.state == .running || lecture.state == .paused || lecture.state == .finishing)
+                        Text("The optional review sends the session transcript, glossary, and bookmark excerpts to Google Gemini.")
+                        Text("Leo never uploads the complete Vault, unrelated notes, or personal files.")
+                    }
+                    .font(.caption)
+                    .padding(8)
+                }
+            }
+            .padding(20)
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import Darwin
+import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -12,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBarController: StatusBarController?
     private var settingsWindowController: SettingsWindowController?
     private var overlayWindowController: OverlayWindowController?
+    private var debugControlWindowController: NSWindowController?
     private var singleInstanceWakeObserver: NSObjectProtocol?
     private var singleInstanceLockDescriptor: Int32 = -1
     private var sourceRefreshTimer: Timer?
@@ -36,7 +38,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        #if DEBUG
+        // A regular activation policy keeps the Settings window reachable while
+        // running from Xcode and makes first-run permission setup accessible.
+        NSApp.setActivationPolicy(.regular)
+        #else
         NSApp.setActivationPolicy(.accessory)
+        #endif
 
         let settingsWindowController = SettingsWindowController(
             model: appModel,
@@ -78,7 +86,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.statusBarController?.statusItemScreenRect
         }
 
+        #if DEBUG
+        let debugWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 620),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        debugWindow.title = "Leo Lecture Assistant"
+        debugWindow.center()
+        debugWindow.contentViewController = NSHostingController(
+            rootView: StatusBarPopoverView(
+                model: appModel,
+                closePopover: {},
+                openAdvancedSettings: { [weak settingsWindowController] in
+                    settingsWindowController?.showSettings()
+                },
+                showTranscript: { [weak self] in
+                    self?.transcriptWindowController.showTranscript()
+                },
+                quitApp: { NSApp.terminate(nil) }
+            )
+        )
+        let debugController = NSWindowController(window: debugWindow)
+        debugControlWindowController = debugController
+        debugController.showWindow(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        #else
         settingsWindowController.showSettings()
+        #endif
 
         appModel.$sessionState
             .removeDuplicates()

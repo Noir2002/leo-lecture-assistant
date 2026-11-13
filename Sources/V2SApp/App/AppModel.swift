@@ -24,12 +24,13 @@ private struct SessionStartupFailure: Error, AppLocalizableError {
 private enum AppBuildInfo {
     static let marketingVersion = "0.3.38"
     static let buildNumber = "42"
-    static let repositoryURLString = "https://github.com/franklioxygen/v2s"
+    static let repositoryURLString = "https://github.com/Noir2002/leo-lecture-assistant"
     static let repositoryURL = URL(string: repositoryURLString)
 }
 
 @MainActor
 final class AppModel: ObservableObject {
+    let lectureCoordinator: LectureSessionCoordinator
     private let settingsStore: SettingsStore
     private let sourceCatalogService: SourceCatalogService
     private let translationCoordinator = TranslationCoordinator()
@@ -189,10 +190,12 @@ final class AppModel: ObservableObject {
 
     init(
         settingsStore: SettingsStore,
-        sourceCatalogService: SourceCatalogService
+        sourceCatalogService: SourceCatalogService,
+        lectureCoordinator: LectureSessionCoordinator
     ) {
         self.settingsStore = settingsStore
         self.sourceCatalogService = sourceCatalogService
+        self.lectureCoordinator = lectureCoordinator
 
         let settings = settingsStore.load()
         self.selectedSourceID = settings.selectedSourceID
@@ -224,6 +227,12 @@ final class AppModel: ObservableObject {
             self?.translationLocaleIdentifier(for: languageID)
                 ?? LanguageCatalog.translationLocaleIdentifier(for: languageID)
         }
+        lectureCoordinator.onInterim = { [weak self] text in
+            self?.handleGeminiInterim(text)
+        }
+        lectureCoordinator.onCloudTranslation = { [weak self] result in
+            self?.handleGeminiTranslation(result)
+        }
 
         isBootstrapping = false
         applyStatusMessage()
@@ -237,7 +246,19 @@ final class AppModel: ObservableObject {
     convenience init() {
         self.init(
             settingsStore: SettingsStore(),
-            sourceCatalogService: SourceCatalogService()
+            sourceCatalogService: SourceCatalogService(),
+            lectureCoordinator: LectureSessionCoordinator()
+        )
+    }
+
+    convenience init(
+        settingsStore: SettingsStore,
+        sourceCatalogService: SourceCatalogService
+    ) {
+        self.init(
+            settingsStore: settingsStore,
+            sourceCatalogService: sourceCatalogService,
+            lectureCoordinator: LectureSessionCoordinator()
         )
     }
 
@@ -548,7 +569,7 @@ final class AppModel: ObservableObject {
 
     func toggleSession() {
         if sessionState == .running {
-            stopSession()
+            Task { await finishClass() }
         } else {
             Task {
                 await startSession()
@@ -568,6 +589,13 @@ final class AppModel: ObservableObject {
             return
         }
         let selectedSourceName = selectedSourceDisplayName
+
+        if let course = lectureCoordinator.selectedCourse {
+            inputLanguageID = supportedSpeechInputLanguageID(course.sourceLanguage)
+            outputLanguageID = translationLanguageOptions.first(where: {
+                $0.id == "zh-Hans" || $0.localeIdentifier == "zh-CN"
+            })?.id ?? "zh-Hans"
+        }
 
         resetLiveTextPipeline()
         setStatus(.checkingLanguageResources)
@@ -595,6 +623,14 @@ final class AppModel: ObservableObject {
         overlayHistoryScrollOffset = 0
         setStatus(.preparing(sourceName: selectedSourceName))
 
+        do {
+            try await lectureCoordinator.start(sourceName: selectedSourceName)
+        } catch {
+            sessionState = .error
+            setStatus(.custom("Leo session could not start: \(error.localizedDescription)"))
+            return
+        }
+
         let config = ModeConfig.config(for: subtitleMode)
         let recognitionHints = recognitionContextualStrings()
         var startedSessions: [LiveTranscriptionSession] = []
@@ -620,8 +656,18 @@ final class AppModel: ObservableObject {
                     interfaceLanguageID: resolvedInterfaceLanguageID,
                     modeConfig: config,
                     contextualStrings: recognitionHints,
+                    audioFrameHandler: { [weak self] buffer in
+                        Task { @MainActor in self?.lectureCoordinator.ingest(buffer) }
+                    },
                     transcriptHandler: { [weak self] sentence in
-                        self?.enqueueRecognizedSentence(
+                        guard let self,
+                              self.lectureCoordinator.state == .running,
+                              self.lectureCoordinator.activeEngine == .appleLocal else { return }
+                        self.lectureCoordinator.recordAppleFinal(
+                            id: sentence.promotionSegmentID ?? UUID(),
+                            french: sentence.text
+                        )
+                        self.enqueueRecognizedSentence(
                             sentence,
                             source: source,
                             sourceLanguageID: sourceLanguageID,
@@ -629,7 +675,10 @@ final class AppModel: ObservableObject {
                         )
                     },
                     partialHandler: { [weak self] draft in
-                        self?.handlePartialDraft(
+                        guard let self,
+                              self.lectureCoordinator.state == .running,
+                              self.lectureCoordinator.activeEngine == .appleLocal else { return }
+                        self.handlePartialDraft(
                             draft,
                             source: source,
                             sourceLanguageID: sourceLanguageID,
@@ -782,6 +831,41 @@ final class AppModel: ObservableObject {
         overlayState = nil
     }
 
+    func finishClass() async {
+        await stopLiveTranscriptionSessionsAndWait()
+        guard lectureCoordinator.state != .finishing, lectureCoordinator.state != .saved else { return }
+        do {
+            let summary = try await lectureCoordinator.finish()
+            resetLiveTextPipeline()
+            sessionState = .idle
+            setStatus(.custom(summary.reviewStatus ?? "Class Saved"))
+        } catch {
+            sessionState = .error
+            setStatus(.custom("Finish failed: \(error.localizedDescription)"))
+        }
+    }
+
+    func togglePauseClass() {
+        Task { @MainActor in
+            switch lectureCoordinator.state {
+            case .running:
+                await lectureCoordinator.pause()
+            case .paused:
+                await lectureCoordinator.resume()
+            default:
+                break
+            }
+        }
+    }
+
+    func markConfusion() {
+        lectureCoordinator.markConfusion()
+    }
+
+    func openLectureInObsidian() {
+        lectureCoordinator.openLectureInObsidian()
+    }
+
     private func stopLiveTranscriptionSessions() {
         let sessions = takeLiveTranscriptionSessions()
         for session in sessions {
@@ -903,7 +987,20 @@ final class AppModel: ObservableObject {
     }
 
     func supportedSpeechInputLanguageID(_ identifier: String) -> String {
-        speechLanguageOptions.contains(where: { $0.id == identifier }) ? identifier : "en"
+        if speechLanguageOptions.contains(where: { $0.id == identifier }) {
+            return identifier
+        }
+        if let exactLocale = speechLanguageOptions.first(where: {
+            $0.localeIdentifier?.caseInsensitiveCompare(identifier) == .orderedSame
+        }) {
+            return exactLocale.id
+        }
+        let languageCode = Locale(identifier: identifier).language.languageCode?.identifier
+        if let languageCode,
+           speechLanguageOptions.contains(where: { $0.id == languageCode }) {
+            return languageCode
+        }
+        return "en"
     }
 
     /// Names the selected speech languages that this Mac can only recognize through
@@ -1110,20 +1207,35 @@ final class AppModel: ObservableObject {
     }
 
     private func awaitSelectedLanguageResourcePreparationIfNeeded() async {
+        #if DEBUG
+        // Interactive Xcode smoke tests should not be held hostage by a system
+        // Translation resource request that may wait for an out-of-process prompt.
+        // The real TranslationSession still requests its resources when used.
+        return
+        #else
         if languageResourcePreparationTask == nil {
             scheduleSelectedLanguageResourcePreparation()
         }
 
         await languageResourcePreparationTask?.value
+        #endif
     }
 
     private var isPreparingSelectedLanguageResources: Bool {
+        #if DEBUG
+        return false
+        #else
         languageResourcePreparationTask != nil
             || languageResourceStatuses.contains(where: { $0.isError == false })
+        #endif
     }
 
     private var hasBlockingLanguageResourceStatuses: Bool {
+        #if DEBUG
+        return false
+        #else
         languageResourceStatuses.contains(where: \.isError)
+        #endif
     }
 
     private func prepareSelectedLanguageResources(
@@ -1975,7 +2087,8 @@ final class AppModel: ObservableObject {
         _ sentence: RecognizedSentence,
         source: InputSource,
         sourceLanguageID: String,
-        targetLanguageID: String
+        targetLanguageID: String,
+        pretranslatedText: String? = nil
     ) {
         let sourceText = sanitizedDisplayText(sentence.text)
         guard sourceText.isEmpty == false else {
@@ -2002,7 +2115,8 @@ final class AppModel: ObservableObject {
                 sourceName: source.name,
                 sourceLanguageID: sourceLanguageID,
                 targetLanguageID: targetLanguageID,
-                promotedDraftTranslation: promotedDraftTranslation
+                promotedDraftTranslation: promotedDraftTranslation,
+                pretranslatedText: pretranslatedText
             )
 
             rememberRecognizedSentence(sourceText)
@@ -2022,7 +2136,8 @@ final class AppModel: ObservableObject {
                 sourceName: source.name,
                 sourceLanguageID: sourceLanguageID,
                 targetLanguageID: targetLanguageID,
-                promotedDraftTranslation: nil
+                promotedDraftTranslation: nil,
+                pretranslatedText: pretranslatedText
             )
 
             rememberRecognizedSentence(sourceText)
@@ -2790,6 +2905,10 @@ final class AppModel: ObservableObject {
     }
 
     private func translatedText(for caption: QueuedCaption) async -> String? {
+        if let pretranslatedText = caption.pretranslatedText,
+           pretranslatedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+            return pretranslatedText
+        }
         guard caption.sourceLanguageID != caption.targetLanguageID else {
             return caption.sourceText
         }
@@ -2926,6 +3045,24 @@ final class AppModel: ObservableObject {
         } else {
             transcriptEntries.append(entry)
         }
+    }
+
+    private func handleGeminiInterim(_ text: String) {
+        guard lectureCoordinator.activeEngine == .geminiSmart else { return }
+        overlayState?.draftSourceText = text
+        overlayState?.draftStablePrefixLength = 0
+        overlayState?.draftPromotionID = nil
+    }
+
+    private func handleGeminiTranslation(_ result: TranslationResult) {
+        guard let source = activeSources.first ?? selectedSource else { return }
+        enqueueRecognizedSentence(
+            RecognizedSentence(text: result.correctedFrench),
+            source: source,
+            sourceLanguageID: languageID(for: source),
+            targetLanguageID: outputLanguageIDForSource(source),
+            pretranslatedText: result.chineseTranslation
+        )
     }
 
     private func levenshteinDistanceRatio(_ a: String, _ b: String) -> Double {
@@ -3235,6 +3372,7 @@ private struct QueuedCaption: Identifiable, Equatable {
     let sourceLanguageID: String
     let targetLanguageID: String
     let promotedDraftTranslation: String?
+    let pretranslatedText: String?
 }
 
 struct TranscriptEntry: Identifiable, Equatable {

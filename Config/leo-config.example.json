@@ -1,0 +1,51 @@
+{
+  "vaultPath": "/absolute/path/to/Leo-Knowledge",
+  "selectedCourse": "IFT-7022",
+  "engineMode": "appleLocal",
+  "subtitleSettings": {
+    "showsInterim": true,
+    "translatedFirst": true
+  },
+  "outlineInterval": 600,
+  "sessionRotationInterval": 510,
+  "freeTierConfirmed": false,
+  "courses": [
+    {
+      "code": "IFT-7022",
+      "officialTitle": "Traitement automatique de la langue naturelle",
+      "domain": "natural-language-processing",
+      "vaultPath": "10_Courses/2026-Autumn/IFT-7022",
+      "sourceLanguage": "fr-FR",
+      "targetLanguage": "zh-CN",
+      "glossaryPath": "Resources/Glossary.md"
+    },
+    {
+      "code": "GIF-7001",
+      "officialTitle": "Vision numérique",
+      "domain": "computer-vision",
+      "vaultPath": "10_Courses/2026-Autumn/GIF-7001",
+      "sourceLanguage": "fr-FR",
+      "targetLanguage": "zh-CN",
+      "glossaryPath": "Resources/Glossary.md"
+    },
+    {
+      "code": "GIF-7005",
+      "officialTitle": "Introduction à l'apprentissage automatique",
+      "domain": "machine-learning",
+      "vaultPath": "10_Courses/2026-Autumn/GIF-7005",
+      "sourceLanguage": "fr-FR",
+      "targetLanguage": "zh-CN",
+      "glossaryPath": "Resources/Glossary.md"
+    },
+    {
+      "code": "GSO-6082",
+      "officialTitle": "Gestion de projets",
+      "domain": "project-management",
+      "vaultPath": "10_Courses/2026-Autumn/GSO-6082",
+      "sourceLanguage": "fr-FR",
+      "targetLanguage": "zh-CN",
+      "glossaryPath": "Resources/Glossary.md"
+    }
+  ],
+  "reviewAfterAppleLocal": false
+}

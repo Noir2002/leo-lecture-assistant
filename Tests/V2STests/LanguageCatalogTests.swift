@@ -2,6 +2,11 @@ import XCTest
 @testable import v2s
 
 final class LanguageCatalogTests: XCTestCase {
+    @MainActor
+    func testAppModelMapsConfiguredFrenchLocaleToRuntimeLanguageID() {
+        let model = AppModel()
+        XCTAssertEqual(model.supportedSpeechInputLanguageID("fr-FR"), "fr")
+    }
     // A language keeps a single locale, and the winner used to be whichever identifier
     // sorted first — which can be a variant with no on-device model.
     func testOptionsKeepPreferredLocaleForALanguage() {

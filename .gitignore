@@ -23,6 +23,10 @@ xcuserdata/
 tmp/
 dist/
 reports/
+.env
+.env.*
+!.env.example
+LeoLectureAssistant/config.json
 .claude/worktrees/
 
 
@@ -31,3 +35,8 @@ docs/notes/
 
 #Ignore cursor AI rules
 .cursor/rules/codacy.mdc
+
+# Private local RAG index and Python environments
+.rag-index.sqlite*
+.venv/
+__pycache__/

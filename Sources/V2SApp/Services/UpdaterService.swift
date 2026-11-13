@@ -25,7 +25,8 @@ final class UpdaterService: ObservableObject {
             userDriverDelegate: nil
         )
         self.automaticallyChecksForUpdates = false
-        start()
+        // Leo Lecture Assistant is a personal fork. Never attach it to the upstream
+        // v2s Sparkle feed, which could replace the learning-specific build.
     }
 
     func checkForUpdates() {

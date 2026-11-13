@@ -1,126 +1,60 @@
-# v2s
+# Leo Lecture Assistant
 
-<p align="center">
-  <img src="Assets.xcassets/AppIcon.appiconset/AppIcon-256.png" alt="v2s app icon" width="256" height="256">
-</p>
+A native macOS study assistant for French-language lectures. Capture a microphone or a specific app, follow bilingual captions, and save a timestamped transcript and revision notes in Obsidian. A Python CLI answers questions across course notes with source citations.
 
-<p align="center">
-  <strong>Live bilingual subtitles for meetings, calls, streams, and videos on macOS.</strong>
-</p>
+## How it works
 
-<p align="center">
-  v2s turns microphone input or app audio into a clean two-line subtitle bar so you can follow speech in one language and read it in another without leaving the screen you are already using.
-</p>
-
-<p align="center">
-  <a href="https://franklioxygen.github.io/v2s/">Website</a>
-  ·
-  <a href="README.zh-CN.md">中文文档</a>
-</p>
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/b65167ee-ae7e-4e37-8316-ebd200ae89a7" alt="Mar-20-2026 11-08-59">
-</p>
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/449039ee-c329-426e-a55b-ab6660c56ca7" alt="Screenshot 2026-03-25 at 1 10 39 PM" width="500">
-</p>
-
-## Why v2s
-
-- Follow live conversations with translated subtitles pinned at the top of your screen.
-- Capture from your microphone or from a specific macOS app instead of your entire system mix.
-- Keep the original speech and the translated line visible together for fast context switching.
-- Stay in a lightweight menu bar workflow instead of juggling browser tabs or full-screen caption apps.
-
-## Features
-
-- Menu bar app built for always-available subtitle access.
-- Live subtitle overlay with translated text on the first line and source text on the second.
-- Audio source selection for microphones and running macOS apps.
-- Speech transcription powered by Apple's Speech frameworks, preferring on-device recognition.
-- On-device translation powered by Apple Translation.
-- Transcript summarization powered by Apple Intelligence, falling back to an on-device extractive summary when Apple Intelligence is unavailable.
-- Overlay styling controls so the subtitle bar stays readable on top of real work.
-
-## Input and Subtitle Languages
-
-v2s asks Apple's Speech and Translation frameworks which languages the current Mac supports, so the choices automatically follow OS and model updates. Regional variants are collapsed in the UI, while meaningful script variants such as Simplified and Traditional Chinese remain separate. Apple Translation availability is also checked for each source/destination pair before a session starts.
-
-## Privacy
-
-- No account, cloud backend, analytics, or telemetry.
-- v2s has no cloud backend and does not send audio or subtitle text to its own servers.
-- Translation uses Apple's on-device Translation framework. Some language packs may need to be downloaded first through System Settings.
-- Speech recognition prefers Apple's on-device models, and v2s picks a language variant that has a local model whenever one exists.
-- Some languages have no on-device model on a given Mac — this is common on Intel Macs, and for languages outside the modern Speech stack. Those run through Apple's server-based recognition, which needs a network connection, is subject to Apple's service quotas, and sends captured speech to Apple under Apple's privacy terms.
-- Voice activity detection runs the [Silero VAD](THIRD_PARTY_NOTICES.md) model through Apple's system Core ML framework; v2s bundles no third-party inference runtime, and the [conversion is reproducible](scripts/convert_silero_vad_coreml.py).
-
-## Getting Started
-
-### Install with Homebrew
-
-```bash
-brew install --cask franklioxygen/v2s/v2s
+```mermaid
+flowchart LR
+    audio["App audio or microphone"] --> live["Gemini Live"]
+    audio --> apple["Apple Speech"]
+    live -.->|"Auth, quota, or network failure"| apple
+    live --> finals["Final French transcript"]
+    apple --> finals
+    finals --> journal["Local recovery journal"]
+    journal --> dedupe["Deduplicate and group by timestamp"]
+    dedupe --> obsidian["Obsidian Markdown"]
+    dedupe --> bookmark["90-second confusion bookmark"]
+    bookmark --> obsidian
+    dedupe --> review["Gemini review on Finish"]
+    bookmark --> review
+    review -->|"Bilingual outline, concepts, explanations"| obsidian
+    obsidian --> rag["Python RAG with Gemini embeddings and FAISS"]
+    rag --> citations["Answer with date, time, and source excerpt"]
 ```
 
-v2s is not notarized by Apple yet, so macOS quarantines it after download. Clear
-the flag once, then launch the app:
+On **Finish**, the app saves the French transcript before requesting one structured Gemini response. The request includes the full deduplicated session, course glossary, and saved bookmark context. Gemini writes a bilingual outline and concept summary, plus an accessible Chinese explanation for each bookmark with French terminology. The app appends the review to the daily Lecture note and shows whether it succeeded. The raw transcript is available for review if the request fails.
 
-```bash
-xattr -dr com.apple.quarantine /Applications/v2s.app
+## Real class example
+
+Selected, redacted excerpts from IFT-7022 on September 29, 2026. The transcript was produced by the app during class. The historical review shown here was prepared separately by Codex from that transcript and labeled accordingly.
+
+| Timestamped French transcript | Historical course review |
+| --- | --- |
+| ![French transcript excerpts about attention](docs/screenshots/ift7022-transcript.png) | ![Chinese review with references to the lecture timestamps](docs/screenshots/ift7022-review.png) |
+
+## Run the macOS app
+
+1. On macOS 26 with Xcode 26 or newer, run `./scripts/install-local.sh` from a clone. It builds, signs locally, and installs the app in `~/Applications`.
+2. Open Settings and select a compatible Obsidian vault and course. The [sample configuration](Config/leo-config.example.json) shows the course paths. The vault requires `AGENTS.md`, `Home.md`, `10_Courses/`, `20_Concepts/`, and `50_Maps/`. Each configured course folder must exist.
+3. Pick an audio source and grant the requested macOS permissions. Use **Apple Local** by default. To add a Gemini review while keeping Apple transcription, enable **Generate a Gemini review after Apple Local classes** in Settings. **Gemini Smart** also uses Gemini during capture. Either cloud mode requires a Gemini API key in Keychain and confirmation that the Google project has billing disabled.
+4. Start the class, use **没听懂** to bookmark confusing moments, and click **Finish**. Open the result with **Open in Obsidian**.
+
+Cloud review sends the current session transcript, glossary, and bookmark excerpts to Google's Gemini API. See [privacy and cost](docs/privacy.md) and [Obsidian integration](docs/obsidian-integration.md).
+
+## Ask questions across lectures
+
+The [Python course Q&A CLI](rag-study-assistant/README.md) indexes dated notes and timestamped transcripts. Ask in Chinese or French and trace the answer to the exact Markdown excerpt. The index and the original course notes stay outside the repository.
+
+## Development
+
+```sh
+swift test
+xcodebuild -project v2s.xcodeproj -scheme v2s -configuration Debug CODE_SIGNING_ALLOWED=NO build
 ```
 
-If you already have `v2s.app` in your Applications folder from a manual install,
-add `--adopt` so Homebrew takes over the existing copy instead of refusing to
-overwrite it.
+The test suite exercises local persistence, deduplication, recovery, and the review lifecycle. An opt-in integration test checks the actual Gemini response with a synthetic French lecture. See [testing](docs/testing.md) and [architecture](docs/architecture.md).
 
-Updates arrive through the in-app updater. To let Homebrew handle them instead,
-run `brew upgrade --cask --greedy v2s`.
+## Attribution
 
-### Install manually
-
-1. Download the latest `.app.zip` from [Releases](https://github.com/franklioxygen/v2s/releases).
-2. Unzip and move `v2s.app` to your Applications folder.
-
-### First run
-
-1. Launch v2s — it appears as an icon in your menu bar.
-2. Select an input source (a running app or microphone).
-3. Choose your input and subtitle languages.
-4. Click **Start**.
-
-v2s will ask for permissions on first use:
-
-- **Speech Recognition** — to transcribe audio into text.
-- **Microphone** — when using a microphone as the input source.
-- **Audio Capture** — when capturing audio from another app.
-
-## Requirements
-
-- Speech transcription and translation require macOS 26 or newer
-- Apple silicon and Intel Macs are supported. Which speech languages are available, and whether they recognize on device, depends on the Mac and the selected language.
-
-## Building from Source
-
-```bash
-git clone https://github.com/franklioxygen/v2s.git
-cd v2s
-open v2s.xcodeproj
-```
-
-Or from the terminal:
-
-```bash
-xcodebuild -project v2s.xcodeproj -scheme v2s -configuration Debug build
-```
-
-To build specifically for an Intel Mac:
-
-```bash
-swift build -c release --arch x86_64
-```
-
-## License
-
-MIT
+This project builds on [franklioxygen/v2s](https://github.com/franklioxygen/v2s) for Core Audio capture, Apple Speech and Translation, and the subtitle overlay. [ATTRIBUTION.md](ATTRIBUTION.md) details the five portfolio contributions, the upstream MIT statement, and third-party notices. The original upstream instructions are preserved in [README.upstream.md](README.upstream.md).

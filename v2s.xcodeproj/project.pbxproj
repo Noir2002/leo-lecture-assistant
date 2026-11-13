@@ -46,6 +46,15 @@
 		A0000000000000000000008E /* PopoverOutsideClickMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000008F /* PopoverOutsideClickMonitor.swift */; };
 		A00000000000000000000090 /* SentenceBoundaryHeuristics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000091 /* SentenceBoundaryHeuristics.swift */; };
 		A00000000000000000000094 /* TranscriptSummarizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000095 /* TranscriptSummarizer.swift */; };
+		B00000000000000000000001 /* LectureModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* LectureModels.swift */; };
+		B00000000000000000000002 /* LectureEngineProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* LectureEngineProtocols.swift */; };
+		B00000000000000000000003 /* LectureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000013 /* LectureConfiguration.swift */; };
+		B00000000000000000000004 /* GeminiCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000014 /* GeminiCredentialStore.swift */; };
+		B00000000000000000000005 /* GeminiServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000015 /* GeminiServices.swift */; };
+		B00000000000000000000006 /* GeminiLiveTranscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000016 /* GeminiLiveTranscription.swift */; };
+		B00000000000000000000007 /* ObsidianSessionWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* ObsidianSessionWriter.swift */; };
+		B00000000000000000000008 /* LectureSessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* LectureSessionCoordinator.swift */; };
+		B00000000000000000000009 /* TranscriptAssembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* TranscriptAssembler.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -89,6 +98,15 @@
 		A0000000000000000000008F /* PopoverOutsideClickMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverOutsideClickMonitor.swift; sourceTree = "<group>"; };
 		A00000000000000000000091 /* SentenceBoundaryHeuristics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceBoundaryHeuristics.swift; sourceTree = "<group>"; };
 		A00000000000000000000095 /* TranscriptSummarizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptSummarizer.swift; sourceTree = "<group>"; };
+		B00000000000000000000011 /* LectureModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LectureModels.swift; sourceTree = "<group>"; };
+		B00000000000000000000012 /* LectureEngineProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LectureEngineProtocols.swift; sourceTree = "<group>"; };
+		B00000000000000000000013 /* LectureConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LectureConfiguration.swift; sourceTree = "<group>"; };
+		B00000000000000000000014 /* GeminiCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiCredentialStore.swift; sourceTree = "<group>"; };
+		B00000000000000000000015 /* GeminiServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiServices.swift; sourceTree = "<group>"; };
+		B00000000000000000000016 /* GeminiLiveTranscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiLiveTranscription.swift; sourceTree = "<group>"; };
+		B00000000000000000000017 /* ObsidianSessionWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObsidianSessionWriter.swift; sourceTree = "<group>"; };
+		B00000000000000000000018 /* LectureSessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LectureSessionCoordinator.swift; sourceTree = "<group>"; };
+		B00000000000000000000019 /* TranscriptAssembler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptAssembler.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -172,6 +190,7 @@
 		A0000000000000000000000E /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				B00000000000000000000011 /* LectureModels.swift */,
 				A00000000000000000000033 /* AppSettings.swift */,
 				A00000000000000000000034 /* InputSource.swift */,
 				A00000000000000000000035 /* LanguageOption.swift */,
@@ -189,6 +208,14 @@
 		A0000000000000000000000F /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				B00000000000000000000012 /* LectureEngineProtocols.swift */,
+				B00000000000000000000013 /* LectureConfiguration.swift */,
+				B00000000000000000000014 /* GeminiCredentialStore.swift */,
+				B00000000000000000000015 /* GeminiServices.swift */,
+				B00000000000000000000016 /* GeminiLiveTranscription.swift */,
+				B00000000000000000000017 /* ObsidianSessionWriter.swift */,
+				B00000000000000000000018 /* LectureSessionCoordinator.swift */,
+				B00000000000000000000019 /* TranscriptAssembler.swift */,
 				A00000000000000000000046 /* GlossaryService.swift */,
 				A00000000000000000000093 /* TranslationCoordinator.swift */,
 				A00000000000000000000041 /* LiveTranscriptionSession.swift */,
@@ -347,6 +374,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B00000000000000000000001 /* LectureModels.swift in Sources */,
+				B00000000000000000000002 /* LectureEngineProtocols.swift in Sources */,
+				B00000000000000000000003 /* LectureConfiguration.swift in Sources */,
+				B00000000000000000000004 /* GeminiCredentialStore.swift in Sources */,
+				B00000000000000000000005 /* GeminiServices.swift in Sources */,
+				B00000000000000000000006 /* GeminiLiveTranscription.swift in Sources */,
+				B00000000000000000000007 /* ObsidianSessionWriter.swift in Sources */,
+				B00000000000000000000008 /* LectureSessionCoordinator.swift in Sources */,
+				B00000000000000000000009 /* TranscriptAssembler.swift in Sources */,
 				A00000000000000000000071 /* DockVisibilityController.swift in Sources */,
 				A00000000000000000000072 /* SessionActionButtonLabel.swift in Sources */,
 				A00000000000000000000076 /* AppLocalization.swift in Sources */,
@@ -438,8 +474,8 @@
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.3.38;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.franklioxygen.v2s;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.leo.lectureassistant;
+				PRODUCT_NAME = "Leo Lecture Assistant";
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
@@ -467,8 +503,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.3.38;
-				PRODUCT_BUNDLE_IDENTIFIER = com.franklioxygen.v2s;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.leo.lectureassistant;
+				PRODUCT_NAME = "Leo Lecture Assistant";
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_EMIT_LOC_STRINGS = NO;

@@ -13,6 +13,7 @@ struct StatusBarPopoverView: View {
             Divider().padding(.horizontal, 16)
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    LectureCourseControls(model: model)
                     sourceSection
                     languageSection
                     overlaySection
@@ -42,7 +43,7 @@ struct StatusBarPopoverView: View {
                     .font(.title2)
                     .foregroundStyle(.tint)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("v2s")
+                    Text("Leo Lecture Assistant")
                         .font(.headline)
                     Text(model.statusMessage)
                         .font(.caption)
@@ -292,6 +293,71 @@ struct StatusBarPopoverView: View {
             get: { model.overlayStyle.sourceFontSize },
             set: { v in model.updateOverlayStyle { $0.sourceFontSize = v } }
         )
+    }
+}
+
+private struct LectureCourseControls: View {
+    @ObservedObject private var lecture: LectureSessionCoordinator
+    private let model: AppModel
+
+    init(model: AppModel) {
+        self.model = model
+        self.lecture = model.lectureCoordinator
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Course", systemImage: "graduationcap.fill")
+                .font(.subheadline.weight(.semibold))
+            SettingsControlRow(label: "Course") {
+                Picker("Course", selection: Binding(
+                    get: { lecture.config.selectedCourse },
+                    set: { lecture.setCourse($0) }
+                )) {
+                    ForEach(lecture.courses) { course in
+                        Text(course.code).tag(course.code)
+                    }
+                }
+                .labelsHidden()
+                .disabled(model.sessionState == .running)
+            }
+            SettingsControlRow(label: "Engine") {
+                Picker("Engine", selection: Binding(
+                    get: { lecture.config.engineMode },
+                    set: { lecture.setEngineMode($0) }
+                )) {
+                    ForEach(LectureEngineMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .labelsHidden()
+                .disabled(model.sessionState == .running)
+            }
+            if model.sessionState == .running {
+                Text("\(lecture.config.selectedCourse) · \(format(lecture.elapsed)) · \(lecture.statusText)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            } else if lecture.state == .saved, let paths = lecture.paths {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(lecture.statusText)
+                        .font(.caption.weight(.semibold))
+                    Text("Course: \(lecture.config.selectedCourse)")
+                    Text("Duration: \(format(lecture.elapsed))")
+                    Text("Transcript: \(URL(fileURLWithPath: paths.transcript).lastPathComponent)")
+                    Text("Lecture: \(URL(fileURLWithPath: paths.lecture).lastPathComponent)")
+                    Text("Confusion markers: \(lecture.confusionMarkerCount)")
+                    Button("Open in Obsidian") { model.openLectureInObsidian() }
+                        .buttonStyle(.link)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func format(_ interval: TimeInterval) -> String {
+        let seconds = max(0, Int(interval))
+        return String(format: "%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60)
     }
 }
 

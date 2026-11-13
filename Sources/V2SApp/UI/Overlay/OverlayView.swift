@@ -22,6 +22,12 @@ struct OverlayView: View {
                 .mask(passThroughMask)
 
             passThroughBubble
+
+            if model.sessionState == .running {
+                LectureOverlayControls(model: model)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                    .padding(18)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
@@ -743,6 +749,40 @@ struct OverlayView: View {
         withAnimation(Self.passThroughTransitionAnimation) {
             passThroughRevealProgress = 0.0
         }
+    }
+}
+
+private struct LectureOverlayControls: View {
+    @ObservedObject private var lecture: LectureSessionCoordinator
+    private let model: AppModel
+
+    init(model: AppModel) {
+        self.model = model
+        self.lecture = model.lectureCoordinator
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text("\(lecture.config.selectedCourse) · \(format(lecture.elapsed))")
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.white.opacity(0.72))
+            Button("? 没听懂") { model.markConfusion() }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            Button(lecture.state == .paused ? "Resume" : "Pause") { model.togglePauseClass() }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            Button("Finish") { Task { await model.finishClass() } }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+        }
+        .padding(7)
+        .background(.black.opacity(0.42), in: Capsule())
+    }
+
+    private func format(_ interval: TimeInterval) -> String {
+        let seconds = max(0, Int(interval))
+        return String(format: "%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60)
     }
 }
 

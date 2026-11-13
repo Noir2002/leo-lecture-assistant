@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   release:
+    if: github.repository == 'franklioxygen/v2s'
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4

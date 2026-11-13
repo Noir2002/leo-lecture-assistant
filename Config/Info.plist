@@ -10,8 +10,10 @@
     <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
-    <key>CFBundleName</key>
-    <string>$(PRODUCT_NAME)</string>
+	<key>CFBundleName</key>
+	<string>Leo Lecture Assistant</string>
+	<key>CFBundleDisplayName</key>
+	<string>Leo Lecture Assistant</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -20,17 +22,13 @@
     <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>LSMinimumSystemVersion</key>
     <string>$(MACOSX_DEPLOYMENT_TARGET)</string>
-	<key>SUFeedURL</key>
-	<string>https://github.com/franklioxygen/v2s/releases/latest/download/appcast.xml</string>
-	<key>SUPublicEDKey</key>
-	<string>c9L/6qNsTDZVevxERjyM4gwJ1n7nXjc7tMdjdQB4uvQ=</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAudioCaptureUsageDescription</key>
-	<string>v2s captures audio from other apps to generate live subtitles.</string>
+	<string>Leo Lecture Assistant captures audio from selected apps to transcribe lectures.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>v2s uses the microphone to generate subtitles from live speech.</string>
+	<string>Leo Lecture Assistant uses the microphone to transcribe lectures.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>v2s uses speech recognition to transcribe audio into subtitles.</string>
+	<string>Leo Lecture Assistant uses speech recognition to transcribe lectures.</string>
 </dict>
 </plist>

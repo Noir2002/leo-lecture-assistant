@@ -174,6 +174,7 @@ final class LiveTranscriptionSession: NSObject, @unchecked Sendable {
 
     private var transcriptHandler: (@MainActor (RecognizedSentence) -> Void)?
     private var partialHandler: (@MainActor (DraftSegment?) -> Void)?
+    private var audioFrameHandler: (@Sendable (AVAudioPCMBuffer) -> Void)?
     private var errorHandler: (@MainActor (String) -> Void)?
     /// Reports an unrecoverable recognition failure after this session has stopped.
     /// The owner uses this separate callback to stop sibling sessions as well.
@@ -238,6 +239,7 @@ final class LiveTranscriptionSession: NSObject, @unchecked Sendable {
         interfaceLanguageID: String,
         modeConfig: ModeConfig = .balanced,
         contextualStrings: [String] = [],
+        audioFrameHandler: (@Sendable (AVAudioPCMBuffer) -> Void)? = nil,
         transcriptHandler: @escaping @MainActor (RecognizedSentence) -> Void,
         partialHandler: @escaping @MainActor (DraftSegment?) -> Void,
         errorHandler: @escaping @MainActor (String) -> Void,
@@ -245,6 +247,7 @@ final class LiveTranscriptionSession: NSObject, @unchecked Sendable {
     ) async throws {
         self.transcriptHandler = transcriptHandler
         self.partialHandler = partialHandler
+        self.audioFrameHandler = audioFrameHandler
         self.modeConfig = modeConfig
         self.recognitionContextualStrings = sanitizeContextualStrings(contextualStrings)
         self.activeLocaleIdentifier = localeIdentifier
@@ -297,6 +300,7 @@ final class LiveTranscriptionSession: NSObject, @unchecked Sendable {
     }
 
     private func stopOnCaptureQueue() {
+        audioFrameHandler = nil
         cancelSilenceTimer()
         cancelVADSilenceTimer()
 
@@ -838,6 +842,7 @@ final class LiveTranscriptionSession: NSObject, @unchecked Sendable {
 
         let audioLevels = cleanUpSpeechBuffer(processingBuffer)
         boostIfQuiet(buffer: processingBuffer, levels: audioLevels)
+        audioFrameHandler?(processingBuffer)
 
         if let vadEngine {
             let vadResult = vadEngine.process(buffer: processingBuffer)
